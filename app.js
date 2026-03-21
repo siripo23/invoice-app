@@ -308,14 +308,14 @@ function showInvoicePreview() {
     var preview = document.getElementById('invoicePreview');
 
     var settings = JSON.parse(localStorage.getItem('companySettings') || '{}');
-    var companyName = settings.companyName || 'SINCHANA ENTERPRISES';
-    var companyAddress = settings.companyAddress || '"Yashodharma", 15th Cross, 60ft Road, Vinoba nagar, Shimoga-577204';
-    var companyGSTIN = settings.companyGSTIN || '29AAQFO2153A1ZR';
-    var companyMobile = settings.companyMobile || '9740238565';
-    var bankName = settings.bankName || 'STATE BANK OF INDIA';
-    var bankBranch = settings.bankBranch || 'Ravindranagara Branch, Shimoga';
-    var accountNumber = settings.accountNumber || '41961364313';
-    var ifscCode = settings.ifscCode || 'SBIN0040270';
+    var companyName = settings.companyName || '';
+    var companyAddress = settings.companyAddress || '';
+    var companyGSTIN = settings.companyGSTIN || '';
+    var companyMobile = settings.companyMobile || '';
+    var bankName = settings.bankName || '';
+    var bankBranch = settings.bankBranch || '';
+    var accountNumber = settings.accountNumber || '';
+    var ifscCode = settings.ifscCode || '';
 
     // Build product rows Ã¢â‚¬â€ fixed 10 rows, blank if not filled
     var productsHTML = '';
@@ -745,17 +745,15 @@ function loadAnalytics() {
 
 function loadSettings() {
     var settings = JSON.parse(localStorage.getItem('companySettings') || '{}');
-    if (Object.keys(settings).length > 0) {
-        document.getElementById('companyName').value = settings.companyName || 'SINCHANA ENTERPRISES';
-        document.getElementById('companyAddress').value = settings.companyAddress || '"Yashodharma", 15th Cross, 60ft Road, Vinoba nagar, Shimoga-577204';
-        document.getElementById('companyGSTIN').value = settings.companyGSTIN || '29AAQFO2153A1ZR';
-        document.getElementById('companyMobile').value = settings.companyMobile || '9740238565';
-        document.getElementById('companyEmail').value = settings.companyEmail || 'sinchanaenterprises@gmail.com';
-        document.getElementById('bankName').value = settings.bankName || 'STATE BANK OF INDIA';
-        document.getElementById('bankBranch').value = settings.bankBranch || 'Ravindranagara Branch, Shimoga';
-        document.getElementById('accountNumber').value = settings.accountNumber || '41961364313';
-        document.getElementById('ifscCode').value = settings.ifscCode || 'SBIN0040270';
-    }
+    document.getElementById('companyName').value = settings.companyName || '';
+    document.getElementById('companyAddress').value = settings.companyAddress || '';
+    document.getElementById('companyGSTIN').value = settings.companyGSTIN || '';
+    document.getElementById('companyMobile').value = settings.companyMobile || '';
+    document.getElementById('companyEmail').value = settings.companyEmail || '';
+    document.getElementById('bankName').value = settings.bankName || '';
+    document.getElementById('bankBranch').value = settings.bankBranch || '';
+    document.getElementById('accountNumber').value = settings.accountNumber || '';
+    document.getElementById('ifscCode').value = settings.ifscCode || '';
 }
 
 function saveSettings() {
