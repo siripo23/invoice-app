@@ -331,21 +331,25 @@ function _renderInvoicePreview(modal, preview, settings) {
         if (p) {
             var pRate = parseFloat(p.rate) || 0;
             var pAmount = parseFloat(p.amount) || 0;
+            var filledB = 'border-left:1px solid #000;border-right:1px solid #000;padding:6px 5px;';
             productsHTML += '<tr>' +
-                '<td style="' + B + 'text-align:center;">' + p.slNo + '</td>' +
-                '<td style="' + B + 'text-align:left;">' + p.desc + '</td>' +
-                '<td style="' + B + 'text-align:center;">' + (p.hsn || '') + '</td>' +
-                '<td style="' + B + 'text-align:center;">' + p.gst + '%</td>' +
-                '<td style="' + B + 'text-align:center;">' + p.qty + '</td>' +
-                '<td style="' + B + 'text-align:right;">' + pRate.toFixed(2) + '</td>' +
-                '<td style="' + B + 'text-align:right;">' + pAmount.toFixed(2) + '</td>' +
+                '<td style="' + filledB + 'text-align:center;">' + p.slNo + '</td>' +
+                '<td style="' + filledB + 'text-align:left;">' + p.desc + '</td>' +
+                '<td style="' + filledB + 'text-align:center;">' + (p.hsn || '') + '</td>' +
+                '<td style="' + filledB + 'text-align:center;">' + p.gst + '%</td>' +
+                '<td style="' + filledB + 'text-align:center;">' + p.qty + '</td>' +
+                '<td style="' + filledB + 'text-align:right;">' + pRate.toFixed(2) + '</td>' +
+                '<td style="' + filledB + 'text-align:right;">' + pAmount.toFixed(2) + '</td>' +
                 '</tr>';
         } else {
             productsHTML += '<tr>' +
-                '<td style="' + B + 'height:30px;">&nbsp;</td>' +
-                '<td style="' + B + '">&nbsp;</td><td style="' + B + '">&nbsp;</td>' +
-                '<td style="' + B + '">&nbsp;</td><td style="' + B + '">&nbsp;</td>' +
-                '<td style="' + B + '">&nbsp;</td><td style="' + B + '">&nbsp;</td>' +
+                '<td style="border-left:1px solid #000;border-right:1px solid #000;height:22px;"></td>' +
+                '<td style="border-right:1px solid #000;"></td>' +
+                '<td style="border-right:1px solid #000;"></td>' +
+                '<td style="border-right:1px solid #000;"></td>' +
+                '<td style="border-right:1px solid #000;"></td>' +
+                '<td style="border-right:1px solid #000;"></td>' +
+                '<td style="border-right:1px solid #000;"></td>' +
                 '</tr>';
         }
     }
@@ -367,9 +371,9 @@ function _renderInvoicePreview(modal, preview, settings) {
     var amountInWords = numberToWords(invoiceTotal);
 
     var html =
-    '<div id="bill-print" style="width:210mm;background:#fff;color:#000;font-family:Arial,sans-serif;font-size:13px;margin:0 auto;box-sizing:border-box;padding:8mm;">' +
+    '<div id="bill-print" style="width:210mm;background:#fff;color:#000;font-family:\'Roboto\',sans-serif;font-size:13px;margin:0 auto;box-sizing:border-box;padding:8mm;">' +
     '<div style="border:2px solid #000;padding:6px;box-sizing:border-box;">' +
-    '<style>#bill-print table{border-collapse:collapse;width:100%;}#bill-print td,#bill-print th{padding:3px 5px;vertical-align:middle;}#bill-print .big{font-size:26px;font-weight:bold;letter-spacing:2px;font-family:Georgia,serif;}</style>' +
+    '<style>@import url(\'https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap\');#bill-print table{border-collapse:collapse;width:100%;}#bill-print td,#bill-print th{padding:3px 5px;vertical-align:middle;font-family:\'Roboto\',sans-serif;}#bill-print .big{font-size:26px;font-weight:bold;letter-spacing:2px;font-family:\'Roboto\',sans-serif;}</style>' +
     '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:bold;margin-bottom:2px;"><span>GSTIN: ' + companyGSTIN + '</span><span>MOB No: ' + companyMobile + '</span></div>' +
     '<div style="text-align:center;font-weight:bold;font-size:15px;letter-spacing:2px;padding:2px 0;">TAX INVOICE</div>' +
     '<div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:2px 0;">' +
