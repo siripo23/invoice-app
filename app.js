@@ -411,7 +411,7 @@ function _renderInvoicePreview(modal, preview, settings) {
     '<tr><td style="' + B + 'padding:3px 6px;">Round off()</td><td style="' + B + 'text-align:right;padding:3px 6px;">0.00</td></tr>' +
     '<tr style="font-weight:bold;"><td style="' + B + 'padding:3px 6px;">Invoice Amount</td><td style="' + B + 'text-align:right;padding:3px 6px;">\u20B9' + invoiceTotal.toFixed(2) + '</td></tr>' +
     '</table></td></tr></table>' +
-    '<table><tr><td style="' + B + 'font-size:12px;"><strong>Bank:</strong> ' + companyName + ' &nbsp;|&nbsp; ' + bankName + ', ' + bankBranch + '</td></tr>' +
+    '<table><tr><td style="' + B + 'font-size:12px;"><strong>Bank Details:</strong> ' + companyName + ' &nbsp;|&nbsp; ' + bankName + ', ' + bankBranch + '</td></tr>' +
     '<tr><td style="' + B + 'font-size:12px;"><strong>A/c No:</strong> ' + accountNumber + ' &nbsp;|&nbsp; <strong>IFSC:</strong> ' + ifscCode + '</td></tr></table>' +
     '<table><tr><td style="' + B + 'font-size:12px;"><strong>Rupees in Words:</strong> ' + amountInWords + '</td></tr></table>' +
     '<table><tr>' +
