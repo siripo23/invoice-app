@@ -1,4 +1,4 @@
-﻿// Invoice App - Clean Version
+// Invoice App - Clean Version
 console.log('App.js loading...');
 
 var currentInvoice = null;
@@ -222,11 +222,11 @@ function fillExcelTemplate() {
                 var worksheet = workbook.Sheets[sheetName];
                 
                 // Get company settings
-                var settings = JSON.parse(localStorage.getItem('companySettings') || '{}');
-                var companyName = settings.companyName || 'SINCHANA ENTERPRISES';
-                var companyAddress = settings.companyAddress || '"Yashodharma", 15th Cross, 60ft Road, Vinoba nagar, Shimoga-577204';
-                var companyGSTIN = settings.companyGSTIN || '29AAQFO2153A1ZR';
-                var companyMobile = settings.companyMobile || '9740238565';
+                var settings = {};
+                var companyName = settings.companyName || '';
+                var companyAddress = settings.companyAddress || '';
+                var companyGSTIN = settings.companyGSTIN || '';
+                var companyMobile = settings.companyMobile || '';
                 
                 // Fill in the data (adjust cell references based on your Excel template)
                 // You'll need to adjust these cell references to match your actual Excel template
@@ -303,11 +303,7 @@ function showExcelPreview(htmlContent) {
 }
 
 
-function showInvoicePreview() {
-    var modal = document.getElementById('invoiceModal');
-    var preview = document.getElementById('invoicePreview');
-
-    var settings = JSON.parse(localStorage.getItem('companySettings') || '{}');
+function _renderInvoicePreview(modal, preview, settings) {
     var companyName = settings.companyName || '';
     var companyAddress = settings.companyAddress || '';
     var companyGSTIN = settings.companyGSTIN || '';
@@ -317,123 +313,75 @@ function showInvoicePreview() {
     var accountNumber = settings.accountNumber || '';
     var ifscCode = settings.ifscCode || '';
 
-    // Build product rows Ã¢â‚¬â€ fixed 10 rows, blank if not filled
+    var products = currentInvoice.products;
+    if (typeof products === 'string') { try { products = JSON.parse(products); } catch(e) { products = []; } }
+    if (!Array.isArray(products)) products = [];
+    currentInvoice.products = products;
+    currentInvoice.subtotal   = parseFloat(currentInvoice.subtotal)   || 0;
+    currentInvoice.cgst       = parseFloat(currentInvoice.cgst)       || 0;
+    currentInvoice.sgst       = parseFloat(currentInvoice.sgst)       || 0;
+    currentInvoice.grandTotal = parseFloat(currentInvoice.grandTotal) || 0;
+
+    var B = 'border:1px solid #000;';
     var productsHTML = '';
-    var maxRows = 10;
-    for (var i = 0; i < maxRows; i++) {
+    for (var i = 0; i < 10; i++) {
         var p = currentInvoice.products[i];
         if (p) {
-            productsHTML +=
-                '<tr>' +
-                '<td style="border:1px solid #000;text-align:center;">' + p.slNo + '</td>' +
-                '<td style="border:1px solid #000;text-align:left;">' + p.desc + '</td>' +
-                '<td style="border:1px solid #000;text-align:center;">' + p.hsn + '</td>' +
-                '<td style="border:1px solid #000;text-align:center;">' + p.gst + '%</td>' +
-                '<td style="border:1px solid #000;text-align:center;">' + p.qty + '</td>' +
-                '<td style="border:1px solid #000;text-align:right;">' + p.rate.toFixed(2) + '</td>' +
-                '<td style="border:1px solid #000;text-align:right;">' + p.amount.toFixed(2) + '</td>' +
+            var pRate = parseFloat(p.rate) || 0;
+            var pAmount = parseFloat(p.amount) || 0;
+            productsHTML += '<tr>' +
+                '<td style="' + B + 'text-align:center;">' + p.slNo + '</td>' +
+                '<td style="' + B + 'text-align:left;">' + p.desc + '</td>' +
+                '<td style="' + B + 'text-align:center;">' + (p.hsn || '') + '</td>' +
+                '<td style="' + B + 'text-align:center;">' + p.gst + '%</td>' +
+                '<td style="' + B + 'text-align:center;">' + p.qty + '</td>' +
+                '<td style="' + B + 'text-align:right;">' + pRate.toFixed(2) + '</td>' +
+                '<td style="' + B + 'text-align:right;">' + pAmount.toFixed(2) + '</td>' +
                 '</tr>';
         } else {
-            productsHTML +=
-                '<tr>' +
-                '<td style="border:1px solid #000;height:30px;">&nbsp;</td>' +
-                '<td style="border:1px solid #000;">&nbsp;</td>' +
-                '<td style="border:1px solid #000;">&nbsp;</td>' +
-                '<td style="border:1px solid #000;">&nbsp;</td>' +
-                '<td style="border:1px solid #000;">&nbsp;</td>' +
-                '<td style="border:1px solid #000;">&nbsp;</td>' +
-                '<td style="border:1px solid #000;">&nbsp;</td>' +
+            productsHTML += '<tr>' +
+                '<td style="' + B + 'height:30px;">&nbsp;</td>' +
+                '<td style="' + B + '">&nbsp;</td><td style="' + B + '">&nbsp;</td>' +
+                '<td style="' + B + '">&nbsp;</td><td style="' + B + '">&nbsp;</td>' +
+                '<td style="' + B + '">&nbsp;</td><td style="' + B + '">&nbsp;</td>' +
                 '</tr>';
         }
     }
 
-    var amountInWords = numberToWords(currentInvoice.grandTotal);
-
-    // GST breakdown by rate
     var gstBreakdown = {};
     for (var i = 0; i < currentInvoice.products.length; i++) {
         var p = currentInvoice.products[i];
         var rate = p.gst;
         if (!gstBreakdown[rate]) gstBreakdown[rate] = 0;
-        gstBreakdown[rate] += p.amount;
+        gstBreakdown[rate] += parseFloat(p.amount) || 0;
     }
-    var cgst5 = 0, cgst12 = 0, cgst18 = 0;
-    var sgst5 = 0, sgst12 = 0, sgst18 = 0;
+    var cgst5=0,cgst12=0,cgst18=0,sgst5=0,sgst12=0,sgst18=0;
     if (gstBreakdown[5])  { cgst5  = gstBreakdown[5]  * 0.025; sgst5  = cgst5; }
     if (gstBreakdown[12]) { cgst12 = gstBreakdown[12] * 0.06;  sgst12 = cgst12; }
     if (gstBreakdown[18]) { cgst18 = gstBreakdown[18] * 0.09;  sgst18 = cgst18; }
     var totalCGST = cgst5 + cgst12 + cgst18;
     var totalSGST = sgst5 + sgst12 + sgst18;
     var invoiceTotal = currentInvoice.subtotal + totalCGST + totalSGST;
+    var amountInWords = numberToWords(invoiceTotal);
 
-    var B = 'border:1px solid #000;';
-    var NB = 'border:none;';
     var html =
     '<div id="bill-print" style="width:210mm;background:#fff;color:#000;font-family:Arial,sans-serif;font-size:13px;margin:0 auto;box-sizing:border-box;padding:8mm;">' +
     '<div style="border:2px solid #000;padding:6px;box-sizing:border-box;">' +
-    '<style>' +
-    '#bill-print table{border-collapse:collapse;width:100%;}' +
-    '#bill-print td,#bill-print th{padding:3px 5px;vertical-align:middle;}' +
-    '#bill-print .bc{text-align:center;}' +
-    '#bill-print .br{text-align:right;}' +
-    '#bill-print .bl{text-align:left;}' +
-    '#bill-print .big{font-size:24px;font-weight:bold;letter-spacing:3px;}' +
-    '</style>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ GSTIN top-left | MOB top-right Ã¢â€â‚¬Ã¢â€â‚¬
-    '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:bold;margin-bottom:2px;">' +
-    '<span>GSTIN: ' + companyGSTIN + '</span>' +
-    '<span>MOB No: ' + companyMobile + '</span>' +
-    '</div>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ TAX INVOICE title Ã¢â€â‚¬Ã¢â€â‚¬
+    '<style>#bill-print table{border-collapse:collapse;width:100%;}#bill-print td,#bill-print th{padding:3px 5px;vertical-align:middle;}#bill-print .big{font-size:26px;font-weight:bold;letter-spacing:2px;font-family:Georgia,serif;}</style>' +
+    '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:bold;margin-bottom:2px;"><span>GSTIN: ' + companyGSTIN + '</span><span>MOB No: ' + companyMobile + '</span></div>' +
     '<div style="text-align:center;font-weight:bold;font-size:15px;letter-spacing:2px;padding:2px 0;">TAX INVOICE</div>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ Logo + Company Name + Address Ã¢â‚¬â€ no box, no table Ã¢â€â‚¬Ã¢â€â‚¬
     '<div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:2px 0;">' +
-    '<img id="invoice-logo" src="' + LOGO_DATA_URL + '" style="width:75px;height:auto;">' +
-    '<div style="text-align:center;">' +
-    '<div class="big">' + companyName + '</div>' +
-    '<div style="font-size:12px;color:#333;margin-top:2px;">' + companyAddress + '</div>' +
+    '<img src="' + LOGO_DATA_URL + '" style="width:75px;height:auto;">' +
+    '<div style="text-align:center;"><div class="big">' + companyName + '</div><div style="font-size:12px;color:#333;margin-top:2px;">' + companyAddress + '</div></div>' +
     '</div>' +
-    '</div>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ Divider line after header Ã¢â€â‚¬Ã¢â€â‚¬
     '<div style="border-top:2px solid #000;margin:4px 0;"></div>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ Name & Address label | Email Ã¢â€â‚¬Ã¢â€â‚¬
-    '<table>' +
-    '<tr>' +
-    '<td style="width:65%;' + B + 'font-weight:bold;">Name &amp; Address:</td>' +
-    '<td style="width:35%;' + B + 'font-size:12px;text-align:right;">Email: sinchanaenterprises@gmail.com</td>' +
-    '</tr>' +
-    '</table>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ Customer address | Invoice No Ã¢â€â‚¬Ã¢â€â‚¬
-    '<table>' +
-    '<tr>' +
+    '<table><tr><td style="width:65%;' + B + 'font-weight:bold;">Name &amp; Address:</td><td style="width:35%;' + B + 'font-size:12px;text-align:right;">Email: ' + (settings.companyEmail || '') + '</td></tr></table>' +
+    '<table><tr>' +
     '<td style="width:65%;' + B + 'vertical-align:top;padding:4px;">' + currentInvoice.customerAddress.replace(/\n/g,'<br>') + '</td>' +
-    '<td style="width:35%;' + B + 'vertical-align:top;">' +
-    '<table style="width:100%;height:100%;border-collapse:collapse;">' +
-    '<tr><td style="border-bottom:1px solid #000;font-weight:bold;text-align:center;padding:4px;">INVOICE NO:</td></tr>' +
-    '<tr><td style="text-align:center;font-weight:bold;font-size:13px;padding:4px;">' + currentInvoice.invoiceNo + '</td></tr>' +
-    '</table>' +
-    '</td>' +
-    '</tr>' +
-    '</table>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ Party GSTIN | Date Ã¢â€â‚¬Ã¢â€â‚¬
-    '<table>' +
-    '<tr>' +
-    '<td style="width:65%;' + B + '">Party GSTIN: ' + (currentInvoice.partyGSTIN || '') + '</td>' +
-    '<td style="width:35%;' + B + '">Date: ' + formatDate(currentInvoice.date) + '</td>' +
-    '</tr>' +
-    '</table>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ Product table Ã¢â‚¬â€ only actual rows, no empty fillers Ã¢â€â‚¬Ã¢â€â‚¬
-    '<table>' +
-    '<thead>' +
-    '<tr style="background:#f0f0f0;">' +
+    '<td style="width:35%;' + B + 'vertical-align:top;"><table style="width:100%;height:100%;border-collapse:collapse;"><tr><td style="border-bottom:1px solid #000;font-weight:bold;text-align:center;padding:4px;">INVOICE NO:</td></tr><tr><td style="text-align:center;font-weight:bold;font-size:13px;padding:4px;">' + currentInvoice.invoiceNo + '</td></tr></table></td>' +
+    '</tr></table>' +
+    '<table><tr><td style="width:65%;' + B + '">Party GSTIN: ' + (currentInvoice.partyGSTIN || '') + '</td><td style="width:35%;' + B + '">Date: ' + formatDate(currentInvoice.date) + '</td></tr></table>' +
+    '<table><thead><tr style="background:#f0f0f0;">' +
     '<th style="width:6%;' + B + 'text-align:center;">Sl.No</th>' +
     '<th style="width:32%;' + B + 'text-align:center;">Name of Product / Service</th>' +
     '<th style="width:12%;' + B + 'text-align:center;">HSN/SAN</th>' +
@@ -441,93 +389,35 @@ function showInvoicePreview() {
     '<th style="width:8%;' + B + 'text-align:center;">QTY</th>' +
     '<th style="width:14%;' + B + 'text-align:center;">RATE</th>' +
     '<th style="width:18%;' + B + 'text-align:center;">AMOUNT</th>' +
-    '</tr>' +
-    '</thead>' +
-    '<tbody>' + productsHTML + '</tbody>' +
-    '</table>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ GST breakdown Ã¢â€â‚¬Ã¢â€â‚¬
-    '<table>' +
-    '<tr style="background:#f0f0f0;font-weight:bold;">' +
-    '<td style="width:10%;' + B + 'text-align:center;">GST%</td>' +
-    '<td style="width:20%;' + B + 'text-align:center;" colspan="2">CGST%</td>' +
-    '<td style="width:10%;' + B + 'text-align:center;">Amount</td>' +
-    '<td style="width:20%;' + B + 'text-align:center;" colspan="2">SGST%</td>' +
-    '<td style="width:10%;' + B + 'text-align:center;">Amount</td>' +
-    '<td style="width:30%;' + B + 'text-align:center;" colspan="2">TOTAL</td>' +
-    '</tr>' +
-    '<tr>' +
-    '<td style="' + B + 'text-align:center;">5%</td>' +
-    '<td style="' + B + 'text-align:center;" colspan="2">2.5%</td>' +
-    '<td style="' + B + 'text-align:right;">' + cgst5.toFixed(2) + '</td>' +
-    '<td style="' + B + 'text-align:center;" colspan="2">2.5%</td>' +
-    '<td style="' + B + 'text-align:right;">' + sgst5.toFixed(2) + '</td>' +
-    '<td style="' + B + 'text-align:left;" colspan="2">CGST &nbsp;&nbsp; ' + totalCGST.toFixed(2) + '</td>' +
-    '</tr>' +
-    '<tr>' +
-    '<td style="' + B + 'text-align:center;">12%</td>' +
-    '<td style="' + B + 'text-align:center;" colspan="2">6%</td>' +
-    '<td style="' + B + 'text-align:right;">' + cgst12.toFixed(2) + '</td>' +
-    '<td style="' + B + 'text-align:center;" colspan="2">6%</td>' +
-    '<td style="' + B + 'text-align:right;">' + sgst12.toFixed(2) + '</td>' +
-    '<td style="' + B + 'text-align:left;" colspan="2">SGST &nbsp;&nbsp; ' + totalSGST.toFixed(2) + '</td>' +
-    '</tr>' +
-    '<tr>' +
-    '<td style="' + B + 'text-align:center;">18%</td>' +
-    '<td style="' + B + 'text-align:center;" colspan="2">9%</td>' +
-    '<td style="' + B + 'text-align:right;">' + cgst18.toFixed(2) + '</td>' +
-    '<td style="' + B + 'text-align:center;" colspan="2">9%</td>' +
-    '<td style="' + B + 'text-align:right;">' + sgst18.toFixed(2) + '</td>' +
-    '<td style="' + B + 'text-align:left;" colspan="2">Round off &nbsp; 0.00</td>' +
-    '</tr>' +
-    '<tr style="font-weight:bold;">' +
-    '<td style="' + B + 'text-align:center;">TOTAL</td>' +
-    '<td style="' + B + '" colspan="2"></td>' +
-    '<td style="' + B + 'text-align:right;">' + totalCGST.toFixed(2) + '</td>' +
-    '<td style="' + B + '" colspan="2"></td>' +
-    '<td style="' + B + 'text-align:right;">' + totalSGST.toFixed(2) + '</td>' +
-    '<td style="' + B + 'text-align:left;">Invoice Amount</td>' +
-    '<td style="' + B + 'text-align:right;font-size:13px;">\u20B9' + invoiceTotal.toFixed(2) + '</td>' +
-    '</tr>' +
-    '</table>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ Bank details Ã¢â€â‚¬Ã¢â€â‚¬
-    '<table>' +
-    '<tr>' +
-    '<td style="' + B + 'font-size:12px;"><strong>Bank:</strong> ' + companyName + ' &nbsp;|&nbsp; ' + bankName + ', ' + bankBranch + '</td>' +
-    '</tr>' +
-    '<tr>' +
-    '<td style="' + B + 'font-size:12px;"><strong>A/c No:</strong> ' + accountNumber + ' &nbsp;|&nbsp; <strong>IFSC:</strong> ' + ifscCode + '</td>' +
-    '</tr>' +
-    '</table>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ Rupees in words Ã¢â€â‚¬Ã¢â€â‚¬
-    '<table>' +
-    '<tr>' +
-    '<td style="' + B + 'font-size:12px;"><strong>Rupees in Words:</strong> ' + amountInWords + '</td>' +
-    '</tr>' +
-    '</table>' +
-
-    // Ã¢â€â‚¬Ã¢â€â‚¬ Terms & Signature Ã¢â‚¬â€ no line above signatory Ã¢â€â‚¬Ã¢â€â‚¬
-    '<table>' +
-    '<tr>' +
-    '<td style="width:65%;' + B + 'font-size:12px;vertical-align:top;">' +
-    '1. Subject to Shimoga Jurisdiction.<br>' +
-    '2. We are not responsible for breaking or loss in transport.<br>' +
-    '3. Goods once sold cannot be taken back or exchanged.' +
-    '</td>' +
-    '<td style="width:35%;' + B + 'text-align:center;vertical-align:bottom;padding:8px 4px 6px 4px;">' +
-    '<div style="margin-bottom:28px;font-weight:bold;">For ' + companyName + '</div>' +
-    '<div style="font-size:12px;">(Authorized Signatory)</div>' +
-    '</td>' +
-    '</tr>' +
-    '</table>' +
-    '</div>' +
-    '</div>';
+    '</tr></thead><tbody>' + productsHTML + '</tbody></table>' +
+    '<table style="width:100%;border-collapse:collapse;"><tr>' +
+    '<td style="width:70%;vertical-align:top;padding:0;border:none;"><table style="width:100%;border-collapse:collapse;">' +
+    '<tr style="background:#f0f0f0;font-weight:bold;"><td style="' + B + 'text-align:center;width:14%;">GST%</td><td style="' + B + 'text-align:center;width:22%;">CGST%</td><td style="' + B + 'text-align:right;width:14%;">Amount</td><td style="' + B + 'text-align:center;width:22%;">SGST%</td><td style="' + B + 'text-align:right;width:14%;">Amount</td></tr>' +
+    '<tr><td style="' + B + 'text-align:center;">5%</td><td style="' + B + 'text-align:center;">2.5%</td><td style="' + B + 'text-align:right;">' + cgst5.toFixed(2) + '</td><td style="' + B + 'text-align:center;">2.5%</td><td style="' + B + 'text-align:right;">' + sgst5.toFixed(2) + '</td></tr>' +
+    '<tr><td style="' + B + 'text-align:center;">12%</td><td style="' + B + 'text-align:center;">6%</td><td style="' + B + 'text-align:right;">' + cgst12.toFixed(2) + '</td><td style="' + B + 'text-align:center;">6%</td><td style="' + B + 'text-align:right;">' + sgst12.toFixed(2) + '</td></tr>' +
+    '<tr><td style="' + B + 'text-align:center;">18%</td><td style="' + B + 'text-align:center;">9%</td><td style="' + B + 'text-align:right;">' + cgst18.toFixed(2) + '</td><td style="' + B + 'text-align:center;">9%</td><td style="' + B + 'text-align:right;">' + cgst18.toFixed(2) + '</td></tr>' +
+    '<tr style="font-weight:bold;"><td style="' + B + 'text-align:center;">TOTAL</td><td style="' + B + '"></td><td style="' + B + 'text-align:right;">' + totalCGST.toFixed(2) + '</td><td style="' + B + '"></td><td style="' + B + 'text-align:right;">' + totalSGST.toFixed(2) + '</td></tr>' +
+    '</table></td>' +
+    '<td style="width:30%;vertical-align:top;padding:0;border:none;"><table style="width:100%;border-collapse:collapse;">' +
+    '<tr style="font-weight:bold;"><td style="' + B + 'padding:3px 6px;">TOTAL</td><td style="' + B + 'text-align:right;padding:3px 6px;">' + currentInvoice.subtotal.toFixed(2) + '</td></tr>' +
+    '<tr><td style="' + B + 'padding:3px 6px;">CGST</td><td style="' + B + 'text-align:right;padding:3px 6px;">' + totalCGST.toFixed(2) + '</td></tr>' +
+    '<tr><td style="' + B + 'padding:3px 6px;">SGST</td><td style="' + B + 'text-align:right;padding:3px 6px;">' + totalSGST.toFixed(2) + '</td></tr>' +
+    '<tr><td style="' + B + 'padding:3px 6px;">Round off()</td><td style="' + B + 'text-align:right;padding:3px 6px;">0.00</td></tr>' +
+    '<tr style="font-weight:bold;"><td style="' + B + 'padding:3px 6px;">Invoice Amount</td><td style="' + B + 'text-align:right;padding:3px 6px;">\u20B9' + invoiceTotal.toFixed(2) + '</td></tr>' +
+    '</table></td></tr></table>' +
+    '<table><tr><td style="' + B + 'font-size:12px;"><strong>Bank:</strong> ' + companyName + ' &nbsp;|&nbsp; ' + bankName + ', ' + bankBranch + '</td></tr>' +
+    '<tr><td style="' + B + 'font-size:12px;"><strong>A/c No:</strong> ' + accountNumber + ' &nbsp;|&nbsp; <strong>IFSC:</strong> ' + ifscCode + '</td></tr></table>' +
+    '<table><tr><td style="' + B + 'font-size:12px;"><strong>Rupees in Words:</strong> ' + amountInWords + '</td></tr></table>' +
+    '<table><tr>' +
+    '<td style="width:65%;' + B + 'font-size:12px;vertical-align:top;">1. Subject to Shimoga Jurisdiction.<br>2. We are not responsible for breaking or loss in transport.<br>3. Goods once sold cannot be taken back or exchanged.</td>' +
+    '<td style="width:35%;' + B + 'text-align:center;vertical-align:bottom;padding:8px 4px 6px 4px;"><div style="margin-bottom:28px;font-weight:bold;">For ' + companyName + '</div><div style="font-size:12px;">(Authorized Signatory)</div></td>' +
+    '</tr></table>' +
+    '</div></div>';
 
     preview.innerHTML = html;
     modal.style.display = 'block';
 }
+
 
 function closeModal() {
     document.getElementById('invoiceModal').style.display = 'none';
@@ -595,8 +485,14 @@ function downloadPDF() {
 
 
 function loadAllInvoices() {
+    var resultsDiv = document.getElementById('searchResults');
+    if (resultsDiv) resultsDiv.innerHTML = '<p style="text-align:center;color:#8b949e;">Loading...</p>';
     invoiceDB.getAllInvoices().then(function(invoices) {
+        console.log('Loaded invoices:', invoices.length);
         displaySearchResults(invoices);
+    }).catch(function(e) {
+        console.error('Error loading invoices:', e);
+        if (resultsDiv) resultsDiv.innerHTML = '<p style="text-align:center;color:#f87171;">Error loading invoices: ' + e.message + '</p>';
     });
 }
 
@@ -611,7 +507,10 @@ function searchInvoices() {
     });
 }
 
+var _invoiceCache = [];
+
 function displaySearchResults(invoices) {
+    _invoiceCache = invoices;
     var resultsDiv = document.getElementById('searchResults');
     if (invoices.length === 0) {
         resultsDiv.innerHTML = '<p style="text-align: center; color: #8b949e;">No invoices found</p>';
@@ -620,20 +519,51 @@ function displaySearchResults(invoices) {
     var html = '';
     for (var i = 0; i < invoices.length; i++) {
         var inv = invoices[i];
-        var customerPreview = inv.customerAddress.split('\n')[0].substring(0, 50);
-        html += '<div class="invoice-card" onclick=\'viewInvoice(' + JSON.stringify(inv).replace(/'/g, "&apos;") + ')\'>' +
+        var customerPreview = inv.customerAddress ? inv.customerAddress.split('\n')[0].substring(0, 50) : '';
+        html += '<div class="invoice-card" onclick="viewInvoice(' + i + ')">' +
             '<h3>Invoice: ' + inv.invoiceNo + '</h3>' +
-            '<p><strong>Customer:</strong> ' + customerPreview + '...</p>' +
+            '<p><strong>Customer:</strong> ' + customerPreview + '</p>' +
             '<p><strong>Date:</strong> ' + formatDate(inv.date) + '</p>' +
-            '<p><strong>Amount:</strong> ₹' + inv.grandTotal.toFixed(2) + '</p>' +
+            '<p><strong>Amount:</strong> \u20B9' + (inv.grandTotal || 0).toFixed(2) + '</p>' +
             '</div>';
     }
     resultsDiv.innerHTML = html;
 }
 
-function viewInvoice(invoice) {
-    currentInvoice = invoice;
+function viewInvoice(index) {
+    console.log('viewInvoice called, index:', index, 'cache length:', _invoiceCache.length);
+    var inv = _invoiceCache[index];
+    if (!inv) {
+        console.error('No invoice at index', index);
+        alert('Invoice not found. Please try searching again.');
+        return;
+    }
+    currentInvoice = inv;
+    console.log('currentInvoice set:', currentInvoice.invoiceNo);
     showInvoicePreview();
+}
+
+function showInvoicePreview() {
+    if (!currentInvoice) { alert('No invoice selected'); return; }
+    var modal = document.getElementById('invoiceModal');
+    var preview = document.getElementById('invoicePreview');
+    if (!modal || !preview) { alert('Modal elements not found'); return; }
+    invoiceDB.loadSettings().then(function(settings) {
+        try {
+            _renderInvoicePreview(modal, preview, settings || {});
+        } catch(e) {
+            console.error('Render error:', e);
+            alert('Error rendering invoice: ' + e.message);
+        }
+    }).catch(function(e) {
+        console.error('Settings load error:', e);
+        try {
+            _renderInvoicePreview(modal, preview, {});
+        } catch(e2) {
+            console.error('Render error (fallback):', e2);
+            alert('Error rendering invoice: ' + e2.message);
+        }
+    });
 }
 
 function formatDate(dateString) {
@@ -744,16 +674,17 @@ function loadAnalytics() {
 }
 
 function loadSettings() {
-    var settings = JSON.parse(localStorage.getItem('companySettings') || '{}');
-    document.getElementById('companyName').value = settings.companyName || '';
-    document.getElementById('companyAddress').value = settings.companyAddress || '';
-    document.getElementById('companyGSTIN').value = settings.companyGSTIN || '';
-    document.getElementById('companyMobile').value = settings.companyMobile || '';
-    document.getElementById('companyEmail').value = settings.companyEmail || '';
-    document.getElementById('bankName').value = settings.bankName || '';
-    document.getElementById('bankBranch').value = settings.bankBranch || '';
-    document.getElementById('accountNumber').value = settings.accountNumber || '';
-    document.getElementById('ifscCode').value = settings.ifscCode || '';
+    invoiceDB.loadSettings().then(function(settings) {
+        document.getElementById('companyName').value = settings.companyName || '';
+        document.getElementById('companyAddress').value = settings.companyAddress || '';
+        document.getElementById('companyGSTIN').value = settings.companyGSTIN || '';
+        document.getElementById('companyMobile').value = settings.companyMobile || '';
+        document.getElementById('companyEmail').value = settings.companyEmail || '';
+        document.getElementById('bankName').value = settings.bankName || '';
+        document.getElementById('bankBranch').value = settings.bankBranch || '';
+        document.getElementById('accountNumber').value = settings.accountNumber || '';
+        document.getElementById('ifscCode').value = settings.ifscCode || '';
+    }).catch(function() {});
 }
 
 function saveSettings() {
@@ -768,14 +699,15 @@ function saveSettings() {
         accountNumber: document.getElementById('accountNumber').value,
         ifscCode: document.getElementById('ifscCode').value
     };
-    localStorage.setItem('companySettings', JSON.stringify(settings));
-    alert('Settings saved successfully!');
+    invoiceDB.saveSettings(settings).then(function() {
+        alert('Settings saved successfully!');
+    }).catch(function(e) {
+        alert('Error saving settings: ' + e.message);
+    });
 }
 
 function resetSettings() {
-    localStorage.removeItem('companySettings');
     loadSettings();
-    alert('Settings reset to default!');
 }
 
 console.log('App.js loaded successfully! All functions defined.');

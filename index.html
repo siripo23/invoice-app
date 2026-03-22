@@ -9,8 +9,141 @@
     <!-- jsPDF for PDF download -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      // ── PASTE YOUR SUPABASE VALUES HERE ──────────────────────────
+      var SUPABASE_URL = 'https://qpvdotiidcawoefcifgp.supabase.co';
+      var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwdmRvdGlpZGNhd29lZmNpZmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMTM2OTIsImV4cCI6MjA4OTY4OTY5Mn0.afwc1mjPUPbZ5O-EgBBNEW1u5YJ7dYUqGytYAJ6Ry7o';
+      // ─────────────────────────────────────────────────────────────
+
+      var _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      window._supabase = _supabase;
+
+      // Auth state listener
+      _supabase.auth.onAuthStateChange(function(event, session) {
+        if (session && session.user) {
+          window._currentUser = session.user;
+          document.getElementById('authModal').style.display = 'none';
+          document.getElementById('appContainer').style.display = 'block';
+          document.getElementById('userEmail').textContent = (session.user.user_metadata && session.user.user_metadata.full_name) ? session.user.user_metadata.full_name : session.user.email;
+          window.dispatchEvent(new Event('userLoggedIn'));
+        } else {
+          window._currentUser = null;
+          document.getElementById('authModal').style.display = 'flex';
+          document.getElementById('appContainer').style.display = 'none';
+        }
+      });
+
+      window.doLogin = function() {
+        var email = document.getElementById('authEmail').value.trim();
+        var pass = document.getElementById('authPassword').value;
+        var err = document.getElementById('authError');
+        err.textContent = '';
+        _supabase.auth.signInWithPassword({ email: email, password: pass })
+          .then(function(res) { if (res.error) err.textContent = res.error.message; });
+      };
+
+      window.doSignup = function() {
+        var name = document.getElementById('authName').value.trim();
+        var email = document.getElementById('authEmail').value.trim();
+        var pass = document.getElementById('authPassword').value;
+        var err = document.getElementById('authError');
+        err.textContent = '';
+        if (!name) { err.textContent = 'Please enter your full name.'; return; }
+        _supabase.auth.signUp({ email: email, password: pass, options: { data: { full_name: name } } })
+          .then(function(res) {
+            if (res.error) { err.textContent = res.error.message; }
+            else { err.style.color = '#4ade80'; err.textContent = 'Account created! You are now logged in.'; }
+          });
+      };
+
+      window.doLogout = function() {
+        _supabase.auth.signOut();
+      };
+    </script>
 </head>
 <body>
+
+    <!-- Auth Modal -->
+    <div id="authModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+      <div style="background:#1e2a3a;padding:36px 32px;border-radius:10px;width:340px;box-shadow:0 4px 24px rgba(0,0,0,0.5);">
+        <h2 style="color:#fff;margin:0 0 6px;text-align:center;">📄 Invoice App</h2>
+
+        <!-- Tab switcher -->
+        <div style="display:flex;margin-bottom:20px;border-bottom:2px solid #2d3f55;">
+          <button id="tabLogin" onclick="switchAuthTab('login')"
+            style="flex:1;padding:8px;background:none;border:none;color:#fff;font-size:14px;cursor:pointer;border-bottom:2px solid #3949ab;margin-bottom:-2px;">
+            Login
+          </button>
+          <button id="tabSignup" onclick="switchAuthTab('signup')"
+            style="flex:1;padding:8px;background:none;border:none;color:#8b949e;font-size:14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">
+            New User
+          </button>
+        </div>
+
+        <!-- Name field (signup only) -->
+        <input id="authName" type="text" placeholder="Full Name"
+          style="display:none;width:100%;padding:10px;margin-bottom:12px;border-radius:5px;border:1px solid #444;background:#0d1b2a;color:#fff;box-sizing:border-box;">
+
+        <input id="authEmail" type="email" placeholder="Email"
+          style="width:100%;padding:10px;margin-bottom:12px;border-radius:5px;border:1px solid #444;background:#0d1b2a;color:#fff;box-sizing:border-box;">
+
+        <!-- Password with eye toggle -->
+        <div style="position:relative;margin-bottom:12px;">
+          <input id="authPassword" type="password" placeholder="Password"
+            style="width:100%;padding:10px;padding-right:40px;border-radius:5px;border:1px solid #444;background:#0d1b2a;color:#fff;box-sizing:border-box;">
+          <span onclick="togglePassword()" id="eyeIcon"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;user-select:none;line-height:0;">
+            <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="#8b949e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="#8b949e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </span>
+        </div>
+
+        <div id="authError" style="color:#f87171;font-size:13px;margin-bottom:10px;min-height:18px;"></div>
+
+        <!-- Login button -->
+        <button id="btnLogin" onclick="doLogin()"
+          style="width:100%;padding:11px;background:#3949ab;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;">
+          Login
+        </button>
+        <!-- Signup button (hidden by default) -->
+        <button id="btnSignup" onclick="doSignup()"
+          style="display:none;width:100%;padding:11px;background:#1a7a4a;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;">
+          Create Account
+        </button>
+      </div>
+    </div>
+
+    <script>
+      function switchAuthTab(tab) {
+        var isLogin = tab === 'login';
+        document.getElementById('tabLogin').style.color = isLogin ? '#fff' : '#8b949e';
+        document.getElementById('tabLogin').style.borderBottomColor = isLogin ? '#3949ab' : 'transparent';
+        document.getElementById('tabSignup').style.color = isLogin ? '#8b949e' : '#fff';
+        document.getElementById('tabSignup').style.borderBottomColor = isLogin ? 'transparent' : '#1a7a4a';
+        document.getElementById('btnLogin').style.display = isLogin ? 'block' : 'none';
+        document.getElementById('btnSignup').style.display = isLogin ? 'none' : 'block';
+        document.getElementById('authName').style.display = isLogin ? 'none' : 'block';
+        document.getElementById('authError').textContent = '';
+      }
+      function togglePassword() {
+        var inp = document.getElementById('authPassword');
+        var eyeOpen = document.getElementById('eyeOpen');
+        var eyeClosed = document.getElementById('eyeClosed');
+        if (inp.type === 'password') {
+          inp.type = 'text';
+          eyeOpen.style.display = 'none';
+          eyeClosed.style.display = 'inline';
+        } else {
+          inp.type = 'password';
+          eyeOpen.style.display = 'inline';
+          eyeClosed.style.display = 'none';
+        }
+      }
+    </script>
+
+    <div id="appContainer" style="display:none;">
     <div class="container">
         <!-- Navigation -->
         <nav class="nav-bar">
@@ -20,6 +153,8 @@
                 <button onclick="showSection('search')" class="nav-btn" id="searchBtn">Search Invoices</button>
                 <button onclick="showSection('analytics')" class="nav-btn" id="analyticsBtn">Analytics</button>
                 <button onclick="showSection('settings')" class="nav-btn" id="settingsBtn">Settings</button>
+                <span id="userEmail" style="color:#8b949e;font-size:13px;align-self:center;margin-left:8px;"></span>
+                <button onclick="doLogout()" class="nav-btn" style="background:#c0392b;">Logout</button>
             </div>
         </nav>
 
@@ -259,17 +394,11 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div><!-- /container -->
+    </div><!-- /appContainer -->
 
     <script src="logo-data.js"></script>
     <script src="db.js"></script>
     <script src="app.js"></script>
-    <script>
-        // Debug: Check if functions are loaded
-        console.log('Checking if functions exist:');
-        console.log('showSection:', typeof showSection);
-        console.log('addProductRow:', typeof addProductRow);
-        console.log('generateInvoice:', typeof generateInvoice);
-    </script>
 </body>
 </html>
